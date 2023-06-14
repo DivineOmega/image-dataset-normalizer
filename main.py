@@ -8,13 +8,11 @@ def resize_image(image_path, max_size, output_format, quality):
     image = Image.open(image_path)
 
     # Check if the image has already been processed
-    if (image.width <= max_size and image.height <= max_size) and image.format == "JPEG" and os.path.splitext(image_path)[1].lower() == ".jpg":
+    if (image.width <= max_size and image.height <= max_size) and image.format == "JPEG" and os.path.splitext(image_path)[1].lower() == ".jpg" and image.mode == "RGB":
         print(f"Skipping {image_path}: already processed or smaller and in JPEG format")
         return
 
-    # Convert palette-based mode (P) and RGBA mode to RGB
-    if image.mode == "P" or image.mode == "RGBA":
-        image = image.convert("RGB")
+    image = image.convert("RGB")
 
     # Calculate aspect ratio and new image size
     aspect_ratio = image.width / image.height
