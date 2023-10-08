@@ -3,14 +3,28 @@ import os
 import imghdr
 from PIL import Image
 
-
-def resize_image(image_path, max_size, output_format, quality):
+def resize_image(image_path, max_size, output_format, quality, realesrgan_path):
     image = Image.open(image_path)
 
     # Check if the image has already been processed
-    if (image.width <= max_size and image.height <= max_size) and image.format == "JPEG" and os.path.splitext(image_path)[1].lower() == ".jpg" and image.mode == "RGB":
+    if (image.width == max_size or image.height == max_size) and image.format == "JPEG" and os.path.splitext(image_path)[1].lower() == ".jpg" and image.mode == "RGB":
         print(f"Skipping {image_path}: already processed or smaller and in JPEG format")
         return
+
+    if image.width < max_size and image.height < max_size:
+        print(f"Upscaling {image_path}...")
+        upscaled_image_path = os.path.splitext(image_path)[0] + '.png'
+
+        # Upscale with realesrgan
+        upscale_result = os.system(f"{realesrgan_path} -i \"{image_path}\" -o \"{upscaled_image_path}\" > /dev/null 2>&1")
+
+        if upscale_result != 0:
+            print(f"Failed to upscale {image_path}")
+            exit(1)
+
+        # Reopen the image
+        image_path = upscaled_image_path
+        image = Image.open(image_path)
 
     image = image.convert("RGB")
 
@@ -36,7 +50,7 @@ def resize_image(image_path, max_size, output_format, quality):
         os.remove(image_path)
 
 
-def process_directory(directory, max_size, output_format, quality):
+def process_directory(directory, max_size, output_format, quality, realesrgan_path):
     for root, _, files in os.walk(directory):
         for filename in files:
             file_path = os.path.join(root, filename)
@@ -44,7 +58,7 @@ def process_directory(directory, max_size, output_format, quality):
             # Check if the file is an image
             if imghdr.what(file_path):
                 try:
-                    resize_image(file_path, max_size, output_format, quality)
+                    resize_image(file_path, max_size, output_format, quality, realesrgan_path)
                 except Exception as e:
                     print(f"Failed to process {file_path}: {e}")
             else:
@@ -61,5 +75,8 @@ if __name__ == "__main__":
     max_pixels = 1024
     format_to_convert = "JPEG"
     image_quality = 90
+    realesrgan_path = "/home/jordan/Downloads/realesrgan-ncnn-vulkan-20220424-ubuntu/realesrgan-ncnn-vulkan"
 
-    process_directory(input_directory, max_pixels, format_to_convert, image_quality)
+    process_directory(input_directory, max_pixels, format_to_convert, image_quality, realesrgan_path)
+
+    print("Done!")
