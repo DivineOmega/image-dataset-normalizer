@@ -8,7 +8,7 @@ def resize_image(image_path, max_size, output_format, quality, realesrgan_path):
 
     # Check if the image has already been processed
     if (image.width == max_size or image.height == max_size) and image.format == "JPEG" and os.path.splitext(image_path)[1].lower() == ".jpg" and image.mode == "RGB":
-        print(f"Skipping {image_path}: already processed or smaller and in JPEG format")
+        print(f"Skipping {image_path}: already processed")
         return
 
     if image.width < max_size and image.height < max_size:
@@ -16,11 +16,17 @@ def resize_image(image_path, max_size, output_format, quality, realesrgan_path):
         upscaled_image_path = os.path.splitext(image_path)[0] + '.png'
 
         # Upscale with realesrgan
-        upscale_result = os.system(f"{realesrgan_path} -i \"{image_path}\" -o \"{upscaled_image_path}\" > /dev/null 2>&1")
+        escaped_image_path = image_path.replace('"', '\\"')
+        escaped_upscaled_image_path = upscaled_image_path.replace('"', '\\"')
+        upscale_result = os.system(f"{realesrgan_path} -i \"{escaped_image_path}\" -o \"{escaped_upscaled_image_path}\" > /dev/null 2>&1")
 
-        if upscale_result != 0:
-            print(f"Failed to upscale {image_path}")
+        # Check if upscaled file exists
+        if not os.path.isfile(upscaled_image_path):
+            print(f"Failed to upscale {image_path} to {upscaled_image_path}")
             exit(1)
+
+        # Remove the original file
+        os.remove(image_path)
 
         # Reopen the image
         image_path = upscaled_image_path
